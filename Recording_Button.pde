@@ -21,8 +21,7 @@ boolean rectOver = false;
 PrintWriter myPrinter, output;
 File recordFile;
 FileWriter logWriter;
-//global boolean used to signal when the recording file is open
-boolean recordingOpen=false;
+
 
 void update(int x, int y) {
  if ( overRect(rectX, rectY, rectWidth, rectHeight) ) {
@@ -40,7 +39,6 @@ void mousePressed() {
     //make file 
     println(getFilename());
     //try to write to file===========================================
-      //myWriter = new FileWriter("temp.txt");
       if(recordingOpen==false){
         recordingOpen=true;
         myPrinter= createWriter(getFilename());

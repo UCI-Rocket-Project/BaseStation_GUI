@@ -15,11 +15,12 @@ float temp, step;
   int yloc=150;
   int zloc=150;
 float i=10.5;
-
   
 BufferedReader reader;
 String line;
-String[] pieces;
+String[] pieces={"0.1", "0.2", "0.3", "0.7", "0.8", "0.9", "0.0", "0.0", "0.0", "0.0"};
+
+boolean reading_file=true;
 
 void setup() {
     reader = createReader("TestTelem.CSV");    
@@ -33,7 +34,6 @@ void setup() {
   step=0.1;
   
   
-  
   rectColor = color(#FC0D0D); //color of record button
   rectHighlight = color(#FC0DED);//51); //color record button turns when moused over
   baseColor = color(102);
@@ -41,37 +41,21 @@ void setup() {
   rectX = width-width/2+rectWidth+150;
   rectY = height-height/2+rectHeight/2;
   
-//  String n="dataLog4.txt";
-   // Create a new file in the sketch directory
-//  output = createWriter(n); 
-  
+  myPort = new Serial(this, Serial.list()[1], 9600);
+  myPort.bufferUntil('\n');
 
 
 }
-
 void draw() {  
-  
-  //------Get next line of input and parse it into a array of strings---------------
-  //rn its used a file but will use a serial Line
-  try {
-    line = reader.readLine();
-  } catch (IOException e) {
-    e.printStackTrace();
-    line = null;
-  }
-  if (line == null) {
-    // Stop reading because of an error or file is empty
-    noLoop();  
-    exitGUI();
-  } else {
-    pieces = split(line, ',');
-    System.out.println(line) ;
-    int y = int(pieces[1]);
-  }
+
   //----------Increments some variable used for debugging/testing/model demonstration-------------
     temp+=step;
     i+=0.1;
     i=temp;
+    if(abs(temp)>=1){
+      step=step*-1;
+  }
+
     
 
     //Set Background color of GUI
@@ -79,30 +63,7 @@ void draw() {
     //background(51); //black background
  
   
-
-
-
-//----Shift display to fit the 3D format of the window---------------------
-
-
-translate(500, 300+200, -500);       
-stroke(0);
-noFill();
-// ----Push/Pop Matrix will rotate then draw the model rocket 
-// See "RocketSketch3DModel" Tab for the drawing function
-pushMatrix();
-
-    if(abs(temp)>=1){step=step*-1;}
-
-    rotateX(temp);  
-    rotateY(temp);
-    rotateZ(temp/2);
-
-    drawRocket_Static();
-popMatrix();
-//-----------------------------------------------------
-   
-//---------Draws the record button, switching colors if mouse is on top of the button--------------
+  //---------Draws the record button, switching colors if mouse is on top of the button--------------
    update(mouseX, mouseY);
   
   if (rectOver) {
@@ -113,7 +74,37 @@ popMatrix();
   stroke(0);//255);
   rect(rectX, rectY, rectWidth, rectHeight);
 //------------------------------------------------------------
-    
+ 
+ //---------- if recording is on and a new data has arrived over it, write the line of data to the logging file
+       //if(recordingOpen && newData){ - this conditional uses the boolean variable newData to log data without duplicates, 
+       //i.e. if no serial line data arrives the previous data will not be logged again
+       
+       //using the conditional below will always log data even if its has already been logged
+       
+       if(recordingOpen==true){ 
+           myPrinter.println(line);
+           newData=false;
+       }
+//------------------------------------------------
+
+
+//----Shift display to fit the 3D format of the window---------------------
+
+translate(500, 300, -500);       
+stroke(0);
+noFill();
+// ----Push/Pop Matrix will rotate then draw the model rocket 
+// See "RocketSketch3DModel" Tab for the drawing function
+pushMatrix();
+
+
+    rotateX(Float.parseFloat(pieces[1]));//temp);  
+    rotateY(Float.parseFloat(pieces[2]));//temp);
+    rotateZ(Float.parseFloat(pieces[3]));//temp/2);
+
+    drawRocket_Static();
+popMatrix();
+//--------------------Write Text to the Window---------------------------------
     fill(51);
     textSize(100);
        text("Acceleration", -width+20, -height+20);
@@ -138,30 +129,23 @@ popMatrix();
 
        
        //Recording Status
-       text("Recording Status: ", -width+2000, (-height/8)+120-100);//  text(nf(i), 0-width, -height/8+120-100);
+       text("Recording Status: ", -width+2000, (-height/8)+120-150);//  text(nf(i), 0-width, -height/8+120-100);
        textSize(80);
        if(recordingOpen==true){
-           text("IN PROGRESS: ", -width+2000, (-height/8)+120-50);//  text(nf(i), 0-width, -height/8+120-50);
+           text("IN PROGRESS: ", -width+1700, (-height/8)+120-50);//  text(nf(i), 0-width, -height/8+120-50);
        }
        else{
-           text("NOT IN PROGRESS", -width+2000, (-height/8)+120-50);//  text(nf(i), 0-width, -height/8+120-50);
+           text("NOT IN PROGRESS", -width+1700, (-height/8)+120-50);//  text(nf(i), 0-width, -height/8+120-50);
            
        }
-        
            
        textSize(100);
-       if(recordingOpen==true){
-           myPrinter.println(line);
-       }
-       if(i>13){
-           exitGUI();
-       }
+
        
  //delay(500);
 }
 
-//Event Listener to exit GUI when key is Pressed
-//WARNING: After adding line-by-line file reader, this event will cause a NULLPointer Exception and Crash the GUI
+//Event Listener to exit GUI when key is Pressed, make sure this is not active when using the GUI
 //void keyPressed() {
 //  exitGUI();
 //}
@@ -174,7 +158,5 @@ void exitGUI(){
           System.out.println("Successfully closed the recording file.");
   }
   
-  output.flush();
-  output.close(); // Finishes the file 
   exit(); 
 }
